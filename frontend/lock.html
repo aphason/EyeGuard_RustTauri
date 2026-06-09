@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EyeGuard - 休息中</title>
+  <script>document.documentElement.style.background='#000';document.body.style.background='#000';document.body.style.margin='0';</script>
+  <style>
+    html, body { background: #000 !important; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000 !important;
+      color: #fff;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      user-select: none;
+      overflow: hidden;
+    }
+    .container { text-align: center; }
+    .time-display {
+      font-size: 96px;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+      color: #4fc3f7;
+      letter-spacing: 6px;
+      text-shadow: 0 0 30px rgba(79,195,247,0.3);
+    }
+    .label { font-size: 18px; color: #78909c; margin-top: 16px; }
+    .unlock-btn {
+      position: fixed;
+      bottom: 40px;
+      right: 40px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(79,195,247,0.15);
+      border: 1px solid rgba(79,195,247,0.3);
+      color: #4fc3f7;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .unlock-btn.visible { opacity: 1; pointer-events: auto; }
+    .unlock-btn:hover { background: rgba(79,195,247,0.3); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="time-display" id="timeDisplay">05:00</div>
+    <div class="label" id="statusLabel">休息时间 · 请远离屏幕</div>
+  </div>
+  <button class="unlock-btn" id="unlockBtn">🔓</button>
+  <script>
+    async function setupLockScreen() {
+      if (typeof window.__TAURI__ === 'undefined') return;
+      const { listen } = window.__TAURI__.event;
+      const { invoke } = window.__TAURI__.core;
+      document.getElementById('unlockBtn').addEventListener('click', async () => {
+        try { await invoke('unlock_screen'); } catch(e) { console.error(e); }
+      });
+
+      let forceMode = 'soft';
+      try {
+        const s = await invoke('get_settings');
+        forceMode = s.force_mode;
+      } catch(e) {}
+
+      if (forceMode === 'none') {
+        document.getElementById('unlockBtn').classList.add('visible');
+      }
+
+      await listen('lock_tick', (event) => {
+        const { remaining_secs, can_unlock } = event.payload;
+        const mins = Math.floor(remaining_secs / 60);
+        const secs = remaining_secs % 60;
+        document.getElementById('timeDisplay').textContent =
+          String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        if (can_unlock) { document.getElementById('unlockBtn').classList.add('visible'); }
+      });
+    }
+    setupLockScreen();
+  </script>
+</body>
+</html>

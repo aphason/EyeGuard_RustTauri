@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EyeGuard</title>
+  <style>
+html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background: #0a1628;
+    overflow: hidden;
+    user-select: none;
+    cursor: default;
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.container {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(10,22,40,0.95), rgba(15,52,96,0.85));
+    border: 1px solid #0f3460; border-radius: 8px;
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: move;
+}
+.drag-bar {
+    display: none;
+}
+.progress-bar {
+    position: absolute; left: 0; top: 0; height: 100%;
+    background: rgba(79,195,247,0.5);
+    transition: width 0.3s linear;
+    width: 100%; z-index: 1;
+}
+.time-display {
+    font-size: 18px; font-weight: bold; color: #4fc3f7;
+    z-index: 2; letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(79,195,247,0.3);
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+.label {
+    display: none;
+}
+.warning { color: #e94560 !important; }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <div class="drag-bar" id="dragBar"></div>
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="time-display" id="timeDisplay">50:00</div>
+    <div class="label" id="statusLabel">距下次休息</div>
+  </div>
+
+<script>
+    let appWindow = typeof window.__TAURI__ !== 'undefined' ? window.__TAURI__.window.getCurrentWindow() : null;
+    let postponeCount = 0;
+    let maxPostpone = 3;
+
+    document.getElementById('app').addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (typeof window.__TAURI__ !== 'undefined') {
+        const { invoke } = window.__TAURI__.core;
+        invoke('show_context_menu', { x: e.clientX, y: e.clientY }).catch(() => {});
+      }
+    });
+
+    document.getElementById('app').addEventListener('mousedown', (e) => {
+      if (e.button === 0 && appWindow) {
+        appWindow.startDragging();
+      }
+    });
+
+    async function setupListeners() {
+      if (typeof window.__TAURI__ === 'undefined') return;
+      const { listen } = window.__TAURI__.event;
+      const { invoke } = window.__TAURI__.core;
+
+      await listen('tick', (event) => {
+        const { remaining_secs, total_secs, postpone_count, max_postpone: mp } = event.payload;
+        const mins = Math.floor(remaining_secs / 60);
+        const secs = remaining_secs % 60;
+        document.getElementById('timeDisplay').textContent =
+          String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        const pct = total_secs > 0 ? (remaining_secs / total_secs) * 100 : 0;
+        document.getElementById('progressBar').style.width = pct + '%';
+        if (remaining_secs <= 180 && remaining_secs > 0) {
+          document.getElementById('timeDisplay').classList.add('warning');
+        } else {
+          document.getElementById('timeDisplay').classList.remove('warning');
+        }
+        postponeCount = postpone_count;
+        maxPostpone = mp;
+      });
+    }
+
+    setupListeners();
+  </script>
+</body>
+</html>
