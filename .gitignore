@@ -1,6 +1,9 @@
 # Ignore text files
 *.txt
 
+# Backup zip files
+*.zip
+
 # Rust
 target/
 .cargo/
