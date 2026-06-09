@@ -78,7 +78,7 @@ EyeGuard_RustTauri/
 │   ├── Cargo.toml          # Rust 依赖
 │   ├── tauri.conf.json     # Tauri 配置
 │   └── build.rs            # 构建脚本
-├── package.json             # Node.js 依赖
+├── package.json             
 └── README.md
 ```
 ## 环境要求
